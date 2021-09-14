@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  reporter:
+    deploy:
+      mode: replicated
+      replicas: 1
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    build: reporter
+    environment:
+      - TZ=Europe/Moscow
+      - MYSQL_SERVER=
+      - MYSQL_LOGIN=
+      - MYSQL_PASSWORD=
+      - MSSQL_SERVER=
+      - MSSQL_LOGIN=
+      - MSSQL_PASSWORD=
+      - TELEGRAM_CHAT=
+      - TELEGRAM_BOT_TOKEN=
