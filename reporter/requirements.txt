@@ -1,14 +1,7 @@
-#asyncio
-#aiohttp
-uuid
 pandas
-pymysql
-#sqlalchemy
-#cryptography
 pymssql
 numpy
 datetime
 matplotlib
-#pyTelegramBotAPI
 requests
 seaborn

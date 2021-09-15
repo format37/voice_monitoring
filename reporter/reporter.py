@@ -1,4 +1,11 @@
 import pandas as pd
+import pymssql
+import os
+import datetime
+import matplotlib.pyplot as plt
+import seaborn as sns
+import requests
+import numpy as np
 
 
 def connect_sql():
@@ -14,13 +21,13 @@ def connect_sql():
 
 def send_photo_from_local_file_to_telegram(photo_path):
 
-    token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
-    chat_id = os.environ.get('TELEGRAM_CHAT', '')
-    session = requests.Session()
-    get_request = 'https://api.telegram.org/bot' + token
-    get_request += '/sendPhoto?chat_id=' + chat_id
-    files = {'photo': open(photo_path, 'rb')}
-    session.post(get_request, files=files)
+	token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+	chat_id = os.environ.get('TELEGRAM_CHAT', '')
+	session = requests.Session()
+	get_request = 'https://api.telegram.org/bot' + token
+	get_request += '/sendPhoto?chat_id=' + chat_id
+	files = {'photo': open(photo_path, 'rb')}
+	session.post(get_request, files=files)
 
 
 def plot_grouped(df, header, tg_group):
@@ -101,7 +108,7 @@ def plot_grouped(df, header, tg_group):
 	send_photo_from_local_file_to_telegram('report.png')
 
 
-def plot_lag(header, columns, tg_group):
+def plot_lag(df, header, columns):
 
 	mycolors = ['tab:blue', 'tab:orange', 'red']
 
@@ -137,8 +144,8 @@ def plot_lag(header, columns, tg_group):
 	send_photo_from_local_file_to_telegram('report.png')
 
 
-def queue_tasks_report(source_id, header, tg_group):
-        
+def queue_tasks_report(trans_conn, source_id, header):
+		
 	today = datetime.datetime.now().date()
 	yesterday = today - datetime.timedelta(days=1)
 	date_from = yesterday.strftime('%Y.%m.%d %H:%M:%S')
@@ -172,101 +179,8 @@ def queue_tasks_report(source_id, header, tg_group):
 	send_photo_from_local_file_to_telegram('report.png')
 
 
-def call_connections():
-        
-	report =''
-	# calls
-	"""with open('mysql_local.pass','r') as file:
-		calls_pass = file.read().replace('\n', '')
-		file.close()
-	calls_conn = pymysql.connect(
-				host = '10.2.4.87',
-				user = 'root',
-				passwd = calls_pass,
-				db = '1c',
-				autocommit = True
-			)"""
-	calls_cursor = calls_conn.cursor()
-
-	# transcribations
-	"""with open('sql.pass','r') as file:
-		trans_pass = file.read().replace('\n', '')
-		file.close()
-	trans_conn = pymssql.connect(
-				server = '10.2.4.124',
-				user = 'ICECORP\\1c_sql',
-				password = trans_pass,
-				database = 'voice_ai',
-				#autocommit=True
-			)"""
-	trans_cursor = trans_conn.cursor()
-
-	# = = = connections report = = =
-	seven_days = datetime.datetime.now().date() - datetime.timedelta(days=7)
-	date_from = seven_days.strftime('%Y:%m:%d %H:%M:%S')
-	# calls
-	query = "SELECT"
-	query += " date(call_date) as day,"
-	query += " date(call_date) as call_date,"
-	query += " ak,"
-	query += " miko,"
-	query += " mrm,"
-	query += " incoming,"
-	query += " not incoming as outcoming,"
-	query += " linkedid,"
-	query += " base_name"
-	query += " from calls"
-	query += " where date(call_date)>='"+date_from+"';"
-	calls = pd.read_sql(query, con=calls_conn)
-	date_min = calls.call_date.min()
-	date_max = calls.call_date.max()
-
-	date_from = datetime.datetime.strptime(str(date_min), '%Y-%m-%d').strftime('%Y%m%d %H:%M:%S.000')
-	date_toto = datetime.datetime.strptime(str(date_max), '%Y-%m-%d').strftime('%Y%m%d %H:%M:%S.000')
-
-	# transcribations
-	query = "SELECT distinct cast(record_date as date) as day, linkedid from transcribations"
-	query += " where cast(record_date as date)>='" + date_from + "' and cast(record_date as date)<='" + date_toto + "';"
-	trans = pd.read_sql(query, con=trans_conn)
-
-	df_all = pd.merge(calls, trans, on='linkedid', how="outer", indicator=True)
-	df_all['day'] = df_all.day_x
-
-	# remove tech records ++
-	df_all.base_name = df_all.base_name.str.lower()
-	tech = pd.merge(
-		df_all[df_all.base_name == '1c_service'],
-		df_all[df_all.base_name == '1c_service_spb'],
-		on='linkedid', how="inner"
-	)
-	tech = pd.merge(
-		tech,
-		df_all[df_all.base_name == '1c_service_region'],
-		on='linkedid', how="inner"
-	)
-	df_all = pd.DataFrame(df_all[~df_all.base_name.isnull()])
-	df_all = df_all[~df_all.linkedid.isin(tech.linkedid.unique())].sort_values('linkedid')
-	# remove tech records --
-
-	report += 'Связь звонков и расшифровок за вчера:'
-
-	yesterday = datetime.datetime.now().date() - datetime.timedelta(days=1)
-	report += '\nЗвонков: ' + str(len(calls[calls.day == yesterday].linkedid.unique()))
-	report += '\nРасшифровок: ' + str(len(trans[trans.day == str(yesterday)].linkedid.unique()))
-	mask = (df_all._merge == 'both') & (df_all.day == yesterday)
-	report += '\nСвязь установлена: ' + str(len(df_all[mask].linkedid.unique()))
-	mask = (df_all._merge == 'left_only') & (df_all.day == yesterday)
-	report += '\nИдентификатор расшифровки не найден среди звонков: ' + str(len(df_all[mask].linkedid.unique()))
-
-	send_to_telegram(group, report)
-
-	df = df_all[df_all._merge == 'both']
-	plot_grouped(df, 'Соединение установлено', group)
-
-	df = df_all[df_all._merge == 'left_only']
-	plot_grouped(df, 'Соединение не установлено', group)
-
-	# = = = lag report = = =
+def lag_report(trans_conn):
+	
 	today = datetime.datetime.now().date()
 	yesterday = today - datetime.timedelta(days=1)
 	date_from = yesterday.strftime('%Y.%m.%d %H:%M:%S')
@@ -289,38 +203,120 @@ def call_connections():
 	df.drop(['rq','qt','call','mrm'], axis = 1, inplace = True)
 	df = pd.DataFrame(df.groupby(['record_hour']).median()/60/60)
 	df['record_hour'] = df.index
-	plot_lag('Длительность расшифровки записей КЦ (ч.)', df.columns[0:2], group)
-	plot_lag('Длительность расшифровки записей МРМ (ч.)', df.columns[2:4], group)
+	plot_lag(df, 'Длительность транскрибации записей КЦ (ч.) за сутки', df.columns[0:2])
+	plot_lag(df, 'Длительность транскрибации записей МРМ (ч.) за сутки', df.columns[2:4])
+
+
+def perfomance_by_processes(trans_conn):
+
+	today = datetime.datetime.now().date()
+	yesterday = today - datetime.timedelta(days=1)
+	date_from = yesterday.strftime('%Y.%m.%d %H:%M:%S')
+	date_toto = today.strftime('%Y.%m.%d %H:%M:%S')
+
+	query = "select file_name, cpu, time, duration"
+	query += " from perf_log "
+	query += " where step = 2 and event_date > '"+date_from+"' and time > 5"
+	query += " and event_date < '"+date_toto+"';"
+	df = pd.read_sql(query, con = trans_conn)
+	df['td'] = df.duration/df.time
+	print(len(df))
+	print(datetime.datetime.now())
+	if len(df):
+		df.groupby('cpu').count().plot(
+			y = ['file_name'], 
+			kind="bar", 
+			title='Транскрибация аудиофайлов за сутки'
+		)		
+		plt.xlabel("Процесс", fontsize = 14)
+		plt.ylabel("Количество файлов", fontsize = 14)
+		plt.savefig("report.png")
+		send_photo_from_local_file_to_telegram('report.png')
+		
+		df.drop(['file_name', 'time', 'duration'], axis=1, inplace = True)
+		df.groupby('cpu').mean().plot(
+			y = ['td'], 
+			kind="bar", 
+			title='Средняя производительность транскрибации за сутки'
+		)
+		plt.xlabel("Процесс", fontsize = 14)
+		plt.ylabel("Производительность", fontsize = 14)
+		plt.savefig("report.png")
+		send_photo_from_local_file_to_telegram('report.png')
+
+
+def transcribation_log(trans_conn):
+
+	today = datetime.datetime.now().date()
+	yesterday = today - datetime.timedelta(days=10)
+	date_from = yesterday.strftime('%Y.%m.%d %H:%M:%S')
+	date_toto = today.strftime('%Y.%m.%d %H:%M:%S')
+
+	query = "select distinct linkedid, record_date"
+	query += " from transcribations"
+	query += " where record_date > '"+date_from+"' and record_date < '"+date_toto+"';"
+	trans = pd.read_sql(query, con = trans_conn)
+
+	query = "select distinct linkedid, sum_date"
+	query += " from summarization "
+	query += " where record_date > '"+date_from+"' and record_date < '"+date_toto+"';"
+	sums = pd.read_sql(query, con = trans_conn)
+
+	df = trans.merge(sums, how = 'left', left_on = 'linkedid', right_on = 'linkedid')
+
+	df['sum_date'] = df['sum_date'].dt.strftime('%Y-%m-%d')
+	df['sum_date'] = pd.to_datetime(df['sum_date'])
+	df['record_date'] = df['record_date'].dt.strftime('%Y-%m-%d')
+	df['record_date'] = pd.to_datetime(df['record_date'])
+	df.drop_duplicates(inplace=True)
+
+	df['summarized'] = df.sum_date.apply(lambda x: 0 if pd.isnull(x) else 1)
+	df['transcribed'] = np.ones(len(df))
+	df.drop(['sum_date'], axis=1, inplace = True)
+	df.drop_duplicates(inplace=True)
 	
-	# = = = queue tasks report = = =
-	queue_tasks_report(1, 'Поступление в очередь КЦ (количество linkedid в минуту)', group)
-	queue_tasks_report(2, 'Поступление в очередь МРМ (количество linkedid в минуту)', group)
+	df = df.groupby(['record_date']).sum()
+	df.reset_index(level=0, inplace=True)
+	df['record_date'] = df['record_date'].astype(str)
+
+	# Prepare Data
+	x = df['record_date'].values.tolist()
+	y1 = df['summarized'].values.tolist()
+	y2 = df['transcribed'].values.tolist()
+	mycolors = ['tab:red', 'tab:blue']
+	columns = ['Суммаризации', 'Транскрибации']
+
+	# Draw Plot 
+	fig, ax = plt.subplots(1, 1, figsize=(16,9), dpi= 80)
+	ax.fill_between(x, y1=y1, y2=0, label=columns[0], alpha=0.5, color=mycolors[0], linewidth=2)
+	ax.fill_between(x, y1=y2, y2=0, label=columns[1], alpha=0.5, color=mycolors[1], linewidth=2)	
+
+	# Decorations
+	ax.set_title('Количество транскрибаций и суммаризаций за 10 дней', fontsize=18)
+	#ax.set(ylim=[0, 30])
+	ax.legend(loc='center', fontsize=12)
+	
+	plt.savefig("report.png")
+	send_photo_from_local_file_to_telegram('report.png')
 
 
-"""def call_log(request):
-    print('call_log')
-    # data -> df
-    filename = str(uuid.uuid4())+'.csv'
-    with open(filename, 'w') as source_file:
-        source_file.write(await request.text())
-        source_file.close()
-    dateparser = lambda x: datetime.datetime.strptime(x, "%d.%m.%Y %H:%M:%S")
-    df = pd.read_csv(filename, ';', parse_dates=['call_date'], date_parser=dateparser)
-    unlink(filename)
+def main():
 
-    def get_base_name(val):
-        return re.findall(r'"(.*?)"', val)[1]
-    df.base_name = df.base_name.apply(get_base_name)
-    df.linkedid = df.linkedid.str.replace('.WAV', '')
+	trans_conn = pymssql.connect(
+			server = os.environ.get('MSSQL_SERVER', ''),
+			user = os.environ.get('MSSQL_LOGIN', ''),
+			password = os.environ.get('MSSQL_PASSWORD', ''),
+			database = 'voice_ai',
+			#autocommit=True			
+		)
 
-    # df -> mysql
-    with open('mysql_local.pass', 'r') as file:
-        mysql_pass = file.read().replace('\n', '')
-        file.close()
-    engine = create_engine('mysql+pymysql://root:' + mysql_pass + '@10.2.4.87:3306/1c', echo=False)
-    df.to_sql(name='calls', con=engine, index=False, if_exists='append')
+	trans_cursor = trans_conn.cursor()
+	
+	#queue_tasks_report(trans_conn, 1, 'Поступление в очередь КЦ (количество linkedid в минуту)')		
+	#queue_tasks_report(trans_conn, 2, 'Поступление в очередь МРМ (количество linkedid в минуту)')
+	#lag_report(trans_conn) # Длительность расшифровки записей
+	#perfomance_by_processes(trans_conn) # Производительность по процессам
+	transcribation_log(trans_conn)
 
-    answer = 'inserted: '+str(len(df))
-    return web.Response(
-        text=answer,
-        content_type="text/html")"""
+if __name__ == "__main__":
+	main()
