@@ -321,7 +321,7 @@ def main():
 
 	trans_cursor = trans_conn.cursor()
 	
-	While True:
+	while True:
 	
 		sleep_until_time(7, 58)
 
