@@ -324,7 +324,7 @@ def main():
 	
 	while True:
 	
-		sleep_until_time(7, 58)
+		sleep_until_time(6, 0)
 
 		queue_tasks_report(trans_conn, 1, 'Поступление в очередь КЦ (количество linkedid в минуту)')		
 		queue_tasks_report(trans_conn, 2, 'Поступление в очередь МРМ (количество linkedid в минуту)')
