@@ -18,3 +18,14 @@ services:
       - MSSQL_PASSWORD=
       - TELEGRAM_CHAT=
       - TELEGRAM_BOT_TOKEN=
+
+logger:
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    build: logger
+    environment:
+      - MYSQL_SERVER=
+      - MYSQL_LOGIN=root
+      - MYSQL_PASSWORD=root
+      - PORT=8083
