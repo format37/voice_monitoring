@@ -2,14 +2,21 @@ import pymysql
 import os
 import pandas as pd
 from aiohttp import web
+from sqlalchemy import create_engine
+import datetime
+import re
+import StringIO
 
 
 def mysql_connector():
-    connector = pymysql.connect(
-        host = '10.2.4.87',
-        user = 'root',
-        passwd = 'root'
-    )
+    mysql_server = os.environ.get('MYSQL_SERVER', '')
+    mysql_user = os.environ.get('MYSQL_USER', '')
+    mysql_pass = os.environ.get('MYSQL_PASS', '')
+    return pymysql.connect(
+        host = mysql_server,
+        user = mysql_user,
+        passwd = mysql_pass
+    )    
 
 
 def database_init():
@@ -19,7 +26,7 @@ def database_init():
     cursor.execute('show databases')
     databases = cursor.fetchall()
     if not (db_name,) in databases:
-        print('creating db: '+db_name
+        print('creating db: '+db_name)
         cursor.execute("CREATE DATABASE "+db_name)  
 
     cursor.execute('use '+db_name)
@@ -38,13 +45,13 @@ def database_init():
 
 
 async def call_test(request):
-	content = "ok"
-	return web.Response(text=content,content_type="text/html")
+    content = "ok"
+    return web.Response(text=content,content_type="text/html")
 
 
 async def call_log(request):            
     # data -> df
-	csv_text = str(await request.text()).replace('\ufeff', '')
+    csv_text = str(await request.text()).replace('\ufeff', '')
     dateparser = lambda x: datetime.datetime.strptime(x, "%d.%m.%Y %H:%M:%S")
     df = pd.read_csv(
         StringIO(csv_text),
@@ -60,19 +67,17 @@ async def call_log(request):
 
     # df -> mysql
     db_name = 'ml'
-    mysql_server = os.environ.get('MYSQL_SERVER', '') # IP:3306
-    mysql_pass = os.environ.get('MYSQL_PASS', '')    
+    mysql_server = os.environ.get('MYSQL_SERVER', '')+':3306'
+    mysql_user = os.environ.get('MYSQL_USER', '')
+    mysql_pass = os.environ.get('MYSQL_PASS', '')
     engine = create_engine(
-        'mysql+pymysql://root:' + mysql_pass + '@'+mysql_server+'/ml',
+        'mysql+pymysql://'+mysql_user+':' + mysql_pass + '@'+mysql_server+'/'+db_name,
         echo=False
     )
     df.to_sql(name='calls', con=engine, index=False, if_exists='append')
-
     answer = 'inserted: '+str(len(df))
-    
-    return web.Response(
-        text=answer,
-        content_type="text/html")
+    return web.Response(text=answer, content_type="text/html")
+
 
 def main():
 
