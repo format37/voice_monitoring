@@ -323,14 +323,15 @@ def main():
 	
 	while True:
 
+		sleep_until_time(6, 0)
+
 		queue_tasks_report(trans_conn, 1, 'Поступление в очередь КЦ (количество linkedid в минуту)')		
 		queue_tasks_report(trans_conn, 2, 'Поступление в очередь МРМ (количество linkedid в минуту)')
 		ranscribation_process_duration(trans_conn)
 		perfomance_by_processes(trans_conn)
 		transcribation_summarization_count(trans_conn, days_count = 10)
 		
-		time.sleep(60)
-		sleep_until_time(6, 0)
+		time.sleep(60)		
 	
 
 if __name__ == "__main__":
