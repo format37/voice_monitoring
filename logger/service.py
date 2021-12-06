@@ -50,32 +50,37 @@ async def call_test(request):
 
 
 async def call_log(request):            
-    # data -> df
-    csv_text = str(await request.text()).replace('\ufeff', '')
-    dateparser = lambda x: datetime.datetime.strptime(x, "%d.%m.%Y %H:%M:%S")
-    df = pd.read_csv(
-        StringIO(csv_text),
-        sep=';',
-        parse_dates=['call_date'],
-        date_parser=dateparser
-    )
+    try:
+        # data -> df
+        csv_text = str(await request.text()).replace('\ufeff', '')
+        dateparser = lambda x: datetime.datetime.strptime(x, "%d.%m.%Y %H:%M:%S")
+        df = pd.read_csv(
+            StringIO(csv_text),
+            sep=';',
+            parse_dates=['call_date'],
+            date_parser=dateparser
+        )
 
-    def get_base_name(val):
-        return re.findall(r'"(.*?)"', val)[1]
-    df.base_name = df.base_name.apply(get_base_name)
-    df.linkedid = df.linkedid.str.replace('.WAV', '')
+        def get_base_name(val):
+            return re.findall(r'"(.*?)"', val)[1]
+        df.base_name = df.base_name.apply(get_base_name)
+        df.linkedid = df.linkedid.str.replace('.WAV', '')
 
-    # df -> mysql
-    db_name = 'ml'
-    mysql_server = os.environ.get('MYSQL_SERVER', '')+':3306'
-    mysql_user = os.environ.get('MYSQL_USER', '')
-    mysql_pass = os.environ.get('MYSQL_PASS', '')
-    engine = create_engine(
-        'mysql+pymysql://'+mysql_user+':' + mysql_pass + '@'+mysql_server+'/'+db_name,
-        echo=False
-    )
-    df.to_sql(name='calls', con=engine, index=False, if_exists='append')
-    answer = 'inserted: '+str(len(df))
+        # df -> mysql
+        db_name = 'ml'
+        mysql_server = os.environ.get('MYSQL_SERVER', '')+':3306'
+        mysql_user = os.environ.get('MYSQL_USER', '')
+        mysql_pass = os.environ.get('MYSQL_PASS', '')
+        engine = create_engine(
+            'mysql+pymysql://'+mysql_user+':' + mysql_pass + '@'+mysql_server+'/'+db_name,
+            echo=False
+        )
+        df.to_sql(name='calls', con=engine, index=False, if_exists='append')
+        answer = 'inserted: '+str(len(df))
+    
+    except Exception as e:
+        answer = 'call_log error: '+str(e)
+
     return web.Response(text=answer, content_type="text/html")
 
 

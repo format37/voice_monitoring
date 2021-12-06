@@ -24,6 +24,7 @@ logger:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
     build: logger
+    network_mode: "host"
     environment:
       - MYSQL_SERVER=
       - MYSQL_LOGIN=root
