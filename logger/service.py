@@ -5,7 +5,7 @@ from aiohttp import web
 from sqlalchemy import create_engine
 import datetime
 import re
-import StringIO
+from io import StringIO
 
 
 def mysql_connector():

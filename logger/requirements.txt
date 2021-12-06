@@ -2,4 +2,3 @@ pymysql
 pandas
 aiohttp
 sqlalchemy
-StringIO
