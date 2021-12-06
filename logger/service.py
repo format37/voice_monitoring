@@ -60,12 +60,12 @@ async def call_log(request):
             parse_dates=['call_date'],
             date_parser=dateparser
         )
-        df.to_csv('df.csv')
+        # df.to_csv('df.csv')
 
         def get_base_name(val):
             return re.findall(r'"(.*?)"', val)[1]
         df.base_name = df.base_name.apply(get_base_name)
-        df.linkedid = df.linkedid.str.replace('.WAV', '')
+        df.linkedid = df.linkedid.astype(str).str.replace('.WAV', '')
 
         # df -> mysql
         db_name = 'ml'
