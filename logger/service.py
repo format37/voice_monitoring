@@ -70,8 +70,11 @@ async def call_log(request):
         mysql_server = os.environ.get('MYSQL_SERVER', '')+':3306'
         mysql_user = os.environ.get('MYSQL_USER', '')
         mysql_pass = os.environ.get('MYSQL_PASSWORD', '')
+        conn_string = 'mysql+pymysql://'+mysql_user+':'
+        conn_string += mysql_pass + '@'+mysql_server+'/'+db_name
+        conn_string += '&autocommit=true'        
         engine = create_engine(
-            'mysql+pymysql://'+mysql_user+':' + mysql_pass + '@'+mysql_server+'/'+db_name,
+            conn_string,
             echo=False
         )
         df.to_sql(name='calls', con=engine, index=False, if_exists='append')
