@@ -66,7 +66,7 @@ async def call_log(request):
             return re.findall(r'"(.*?)"', val)[1]
         df.base_name = df.base_name.apply(get_base_name)
         df.linkedid = df.linkedid.astype(str).str.replace('.WAV', '')
-        df.drop('Unnamed: 0', axis=1, inplace=True)
+        # df.drop('Unnamed: 0', axis=1, inplace=True)
         
         # df -> mysql
         db_name = 'ml'
