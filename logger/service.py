@@ -36,8 +36,8 @@ def database_init():
     query += "    miko BOOLEAN,"
     query += "    mrm BOOLEAN,"
     query += "    incoming BOOLEAN,"
-    query += "    linkedid CHAR(25),"
-    query += "    base_name CHAR(25),"
+    query += "    linkedid CHAR(255),"
+    query += "    base_name CHAR(255),"
     query += "    primary key(id)"
     query += ")"
     cursor.execute(query)
