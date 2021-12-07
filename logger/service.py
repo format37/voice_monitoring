@@ -72,11 +72,10 @@ async def call_log(request):
         mysql_pass = os.environ.get('MYSQL_PASSWORD', '')
         conn_string = 'mysql+pymysql://'+mysql_user+':'
         conn_string += mysql_pass + '@'+mysql_server+'/'+db_name
-        conn_string += '&autocommit=true'        
         engine = create_engine(
             conn_string,
             echo=False
-        )
+        ).execution_options(autocommit=True)        
         df.to_sql(name='calls', con=engine, index=False, if_exists='append')
         answer = 'inserted: '+str(len(df))
     
