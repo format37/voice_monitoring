@@ -30,13 +30,15 @@ def database_init():
     cursor.execute('use '+db_name)
 
     query = "CREATE TABLE IF NOT EXISTS calls ("
+    query += "    id int not null auto_increment,"
     query += "    call_date DATETIME,"
     query += "    ak BOOLEAN,"
     query += "    miko BOOLEAN,"
     query += "    mrm BOOLEAN,"
     query += "    incoming BOOLEAN,"
     query += "    linkedid CHAR(25),"
-    query += "    base_name CHAR(25)"
+    query += "    base_name CHAR(25),"
+    query += "    primary key(id)"
     query += ")"
     cursor.execute(query)
     cursor.close()
