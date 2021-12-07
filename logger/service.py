@@ -23,7 +23,7 @@ def database_init():
     connector = mysql_connector()
     cursor = connector.cursor()
     db_name = 'ml'        
-    cursor.execute("CREATE TABLE IF NOT EXISTS "+db_name)
+    cursor.execute("create database if not exists "+db_name)
     cursor.execute('use '+db_name)
 
     query = "CREATE TABLE IF NOT EXISTS calls ("
@@ -37,6 +37,8 @@ def database_init():
     query += "    base_name CHAR(25)"
     query += ")"
     cursor.execute(query)
+    cursor.close()
+    connector.close()
 
 
 async def call_test(request):
