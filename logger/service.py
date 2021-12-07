@@ -12,6 +12,9 @@ def mysql_connector():
     mysql_server = os.environ.get('MYSQL_SERVER', '')
     mysql_user = os.environ.get('MYSQL_USER', '')
     mysql_pass = os.environ.get('MYSQL_PASS', '')
+    print('mysql_server', mysql_server)
+    print('mysql_user', mysql_user)
+    print('mysql_pass', mysql_pass)
     return pymysql.connect(
         host = mysql_server,
         user = mysql_user,
@@ -22,7 +25,7 @@ def mysql_connector():
 def database_init():
     connector = mysql_connector()
     cursor = connector.cursor()
-    db_name = 'ml'        
+    db_name = 'ml'
     cursor.execute("create database if not exists "+db_name)
     cursor.execute('use '+db_name)
 
