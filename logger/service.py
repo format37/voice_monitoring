@@ -11,7 +11,7 @@ from io import StringIO
 def mysql_connector():
     mysql_server = os.environ.get('MYSQL_SERVER', '')
     mysql_user = os.environ.get('MYSQL_USER', '')
-    mysql_pass = os.environ.get('MYSQL_PASS', '')
+    mysql_pass = os.environ.get('MYSQL_PASSWORD', '')
     print('mysql_server', mysql_server)
     print('mysql_user', mysql_user)
     print('mysql_pass', mysql_pass)
@@ -60,19 +60,17 @@ async def call_log(request):
             parse_dates=['call_date'],
             date_parser=dateparser
         )
-        # df.to_csv('df.csv')
 
         def get_base_name(val):
             return re.findall(r'"(.*?)"', val)[1]
         df.base_name = df.base_name.apply(get_base_name)
         df.linkedid = df.linkedid.astype(str).str.replace('.WAV', '')
-        # df.drop('Unnamed: 0', axis=1, inplace=True)
         
         # df -> mysql
         db_name = 'ml'
         mysql_server = os.environ.get('MYSQL_SERVER', '')+':3306'
         mysql_user = os.environ.get('MYSQL_USER', '')
-        mysql_pass = os.environ.get('MYSQL_PASS', '')
+        mysql_pass = os.environ.get('MYSQL_PASSWORD', '')
         engine = create_engine(
             'mysql+pymysql://'+mysql_user+':' + mysql_pass + '@'+mysql_server+'/'+db_name,
             echo=False
