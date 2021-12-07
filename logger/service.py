@@ -22,13 +22,8 @@ def mysql_connector():
 def database_init():
     connector = mysql_connector()
     cursor = connector.cursor()
-    db_name = 'ml'    
-    cursor.execute('show databases')
-    databases = cursor.fetchall()
-    if not (db_name,) in databases:
-        print('creating db: '+db_name)
-        cursor.execute("CREATE DATABASE "+db_name)  
-
+    db_name = 'ml'        
+    cursor.execute("CREATE TABLE IF NOT EXISTS "+db_name)
     cursor.execute('use '+db_name)
 
     query = "CREATE TABLE IF NOT EXISTS calls ("
@@ -87,15 +82,16 @@ async def call_log(request):
 
 
 def main():
+    database_init()
 
-	app = web.Application(client_max_size=1024**3)
-	app.router.add_route('GET', '/test', call_test)
-	app.router.add_route('POST', '/log', call_log)
+    app = web.Application(client_max_size=1024**3)
+    app.router.add_route('GET', '/test', call_test)
+    app.router.add_route('POST', '/log', call_log)
 
-	web.run_app(
-		app,
-		port=os.environ.get('PORT', ''),
-	)
+    web.run_app(
+        app,
+        port=os.environ.get('PORT', ''),
+    )
 
 
 if __name__ == '__main__':
