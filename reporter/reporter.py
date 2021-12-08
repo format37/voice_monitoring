@@ -1,5 +1,6 @@
 import pandas as pd
 import pymssql
+import pymysql
 import os
 import time
 import datetime
@@ -310,7 +311,7 @@ def transcribation_summarization_count(trans_conn, days_count):
 	send_photo_from_local_file_to_telegram('report.png')
 
 
-def calls_transcribations_relation():
+def calls_transcribations_relation(trans_conn):
 	report =''
 	# calls
 	calls_conn = pymysql.connect(
@@ -319,21 +320,7 @@ def calls_transcribations_relation():
 		passwd = 'root',
 		database = 'ml'
 	)
-	calls_cursor = connector.cursor()
-
-	# transcribations
-	with open('sql.pass','r') as file:
-		trans_pass = file.read().replace('\n', '')
-		file.close()
-
-	trans_conn = pymssql.connect(
-				server = '10.2.4.124',
-				user = 'ICECORP\\1c_sql',
-				password = trans_pass,
-				database = 'voice_ai',
-				#autocommit=True
-			)
-	trans_cursor = trans_conn.cursor()
+	calls_conn.cursor()
 
 	# = = = connections report = = =
 	seven_days = datetime.datetime.now().date() - datetime.timedelta(days=7)
@@ -423,7 +410,7 @@ def main():
 	
 	while True:
 
-		calls_transcribations_relation()
+		calls_transcribations_relation(trans_conn)
 
 		sleep_until_time(6, 0)
 
