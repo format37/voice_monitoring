@@ -30,11 +30,21 @@ def send_photo_from_local_file_to_telegram(photo_path):
 	session.post(get_request, files=files)
 
 
+def send_text_to_telegram(text):
+
+	token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+	chat_id = os.environ.get('TELEGRAM_CHAT', '')
+	session = requests.Session()
+	get_request = 'https://api.telegram.org/bot' + token
+	get_request += '/sendMessage?chat_id=' + chat_id
+	get_request += '&parse_mode=Markdown&text=' + text
+	session.get(get_request)
+
+
 def plot_grouped(df, header, tg_group):
 
 	df = df.drop(['base_name', '_merge', 'call_date'], axis=1)
 	df = df.groupby(['day', 'ak', 'miko', 'mrm', 'incoming', 'outcoming']).count()
-	# df.groupby('param')['group'].nunique()
 	for i in range(6):
 		df.reset_index(level=0, inplace=True)
 	df.incoming *= df.linkedid
@@ -300,6 +310,96 @@ def transcribation_summarization_count(trans_conn, days_count):
 	send_photo_from_local_file_to_telegram('report.png')
 
 
+def calls_transcribations_relation():
+	report =''
+	# calls
+	calls_conn = pymysql.connect(
+		host = '10.2.4.87',
+		user = 'root',
+		passwd = 'root',
+		database = 'ml'
+	)
+	calls_cursor = connector.cursor()
+
+	# transcribations
+	with open('sql.pass','r') as file:
+		trans_pass = file.read().replace('\n', '')
+		file.close()
+
+	trans_conn = pymssql.connect(
+				server = '10.2.4.124',
+				user = 'ICECORP\\1c_sql',
+				password = trans_pass,
+				database = 'voice_ai',
+				#autocommit=True
+			)
+	trans_cursor = trans_conn.cursor()
+
+	# = = = connections report = = =
+	seven_days = datetime.datetime.now().date() - datetime.timedelta(days=7)
+	date_from = seven_days.strftime('%Y:%m:%d %H:%M:%S')
+	# calls
+	query = "SELECT"
+	query += " date(call_date) as day,"
+	query += " date(call_date) as call_date,"
+	query += " ak,"
+	query += " miko,"
+	query += " mrm,"
+	query += " incoming,"
+	query += " not incoming as outcoming,"
+	query += " linkedid,"
+	query += " base_name"
+	query += " from calls"
+	query += " where date(call_date)>='"+date_from+"';"
+	calls = pd.read_sql(query, con=calls_conn)
+	date_min = calls.call_date.min()
+	date_max = calls.call_date.max()
+
+	date_from = datetime.datetime.strptime(str(date_min), '%Y-%m-%d').strftime('%Y%m%d %H:%M:%S.000')
+	date_toto = datetime.datetime.strptime(str(date_max), '%Y-%m-%d').strftime('%Y%m%d %H:%M:%S.000')
+
+	# transcribations
+	query = "SELECT distinct cast(record_date as date) as day, linkedid from transcribations"
+	query += " where cast(record_date as date)>='" + date_from + "' and cast(record_date as date)<='" + date_toto + "';"
+	trans = pd.read_sql(query, con=trans_conn)
+
+	df_all = pd.merge(calls, trans, on='linkedid', how="outer", indicator=True)
+	df_all['day'] = df_all.day_x
+
+	# remove tech records ++
+	df_all.base_name = df_all.base_name.str.lower()
+	tech = pd.merge(
+		df_all[df_all.base_name == '1c_service'],
+		df_all[df_all.base_name == '1c_service_spb'],
+		on='linkedid', how="inner"
+	)
+	tech = pd.merge(
+		tech,
+		df_all[df_all.base_name == '1c_service_region'],
+		on='linkedid', how="inner"
+	)
+	df_all = pd.DataFrame(df_all[~df_all.base_name.isnull()])
+	df_all = df_all[~df_all.linkedid.isin(tech.linkedid.unique())].sort_values('linkedid')
+	# remove tech records --
+	report += 'Связь звонков и расшифровок за вчера:'
+
+	yesterday = datetime.datetime.now().date() - datetime.timedelta(days=1)
+	report += '\nЗвонков: ' + str(len(calls[calls.day == yesterday].linkedid.unique()))
+	report += '\nРасшифровок: ' + str(len(trans[trans.day == str(yesterday)].linkedid.unique()))
+	mask = (df_all._merge == 'both') & (df_all.day == yesterday)
+	report += '\nСвязь установлена: ' + str(len(df_all[mask].linkedid.unique()))
+	mask = (df_all._merge == 'left_only') & (df_all.day == yesterday)
+	report += '\nИдентификатор расшифровки не найден среди звонков: ' + str(len(df_all[mask].linkedid.unique()))
+	send_text_to_telegram(report)
+
+	group = ''
+	df = df_all[df_all._merge == 'both']
+	plot_grouped(df, 'Соединение установлено', group)
+
+	df = df_all[df_all._merge == 'left_only']
+	plot_grouped(df, 'Соединение не установлено', group)
+
+
 def sleep_until_time(hour, minute):
     now = datetime.datetime.now()
     if now.hour > hour or (now.hour == hour and now.minute >= minute):
@@ -322,6 +422,8 @@ def main():
 	trans_cursor = trans_conn.cursor()
 	
 	while True:
+
+		calls_transcribations_relation()
 
 		sleep_until_time(6, 0)
 
