@@ -417,7 +417,7 @@ def main():
 		calls_transcribations_relation(trans_conn)
 		
 		time.sleep(60)
-		sleep_until_time(6, 0)	
+		sleep_until_time(6, 0)
 
 
 if __name__ == "__main__":
