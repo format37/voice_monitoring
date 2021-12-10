@@ -398,7 +398,6 @@ def sleep_until_time(hour, minute):
 
 
 def main():
-
 	trans_conn = pymssql.connect(
 			server = os.environ.get('MSSQL_SERVER', ''),
 			user = os.environ.get('MSSQL_LOGIN', ''),
