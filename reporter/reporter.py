@@ -397,6 +397,55 @@ def sleep_until_time(hour, minute):
     time.sleep((tomorrow - now).seconds)
 
 
+def colorator(source_id):
+    return 'red' if source_id == 1 else 'green'
+
+
+def queue_time_vs_date(trans_conn):
+	query = "select"
+	query += " source_id,"
+	query += " DATEDIFF(second, date, getdate()) as queued_seconds_from_now,"
+	query += " DATEDIFF(second, record_date, getdate()) as recorded_seconds_from_now"
+	query += " from queue order by record_date;"	
+	queue = pd.read_sql(query, con = trans_conn)
+
+	if len(queue):
+	
+		queue['color'] = queue['source_id'].apply(colorator)
+
+		q_a = queue[queue.source_id == 1]
+		q_b = queue[queue.source_id == 2]
+
+		ratio = max(queue.queued_seconds_from_now) / max(queue.recorded_seconds_from_now) * 10
+		fig, ax = plt.subplots(1, 1, figsize=(15, 10), dpi=80)
+
+		ax.scatter(
+			q_a.queued_seconds_from_now, 
+			q_a.recorded_seconds_from_now, 
+			color=q_a['color'],
+			label="call",
+				marker = 'x'
+		)
+		ax.scatter(
+			q_b.queued_seconds_from_now, 
+			q_b.recorded_seconds_from_now, 
+			color=q_b['color'],
+			label="mrm",
+			marker = '.'
+		)
+		currentdate = datetime.datetime.today()
+		currentdate = currentdate.strftime('%Y.%m.%d %H:%M:%S')
+		ax.set_title('Очередь ' + currentdate, fontsize=18)
+
+		# Set common labels
+		ax.set_xlabel('Добавлено, сек. назад', fontsize=18)
+		ax.set_ylabel('Записано, сек. назад', fontsize=18)
+
+		plt.legend(bbox_to_anchor=(1, 1), loc='upper left', ncol=1)
+		plt.savefig('queue.png')
+		send_photo_from_local_file_to_telegram('queue.png')
+
+
 def main():
 	trans_conn = pymssql.connect(
 			server = os.environ.get('MSSQL_SERVER', ''),
@@ -405,9 +454,10 @@ def main():
 			database = 'voice_ai'			
 		)
 
-	trans_cursor = trans_conn.cursor()
+	# trans_cursor = trans_conn.cursor()
 	
 	while True:
+		queue_time_vs_date(trans_conn)
 		queue_tasks_report(trans_conn, 1, 'Поступление в очередь КЦ (количество linkedid в минуту)')		
 		queue_tasks_report(trans_conn, 2, 'Поступление в очередь МРМ (количество linkedid в минуту)')
 		ranscribation_process_duration(trans_conn)
