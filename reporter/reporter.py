@@ -197,25 +197,31 @@ def ranscribation_process_duration(trans_conn):
 	date_from = yesterday.strftime('%Y.%m.%d %H:%M:%S')
 	date_toto = today.strftime('%Y.%m.%d %H:%M:%S')
 	query = "SELECT distinct"
-	query += " DATEPART(HOUR, record_date) as record_hour,"
-	query += " DATEDIFF(second,record_date, queue_date) as rq,"
-	query += " DATEDIFF(second,queue_date, transcribation_date) as qt,"
-	query += " CASE WHEN source_id = 1 then 1 else 0 end as call,"
-	query += " CASE WHEN source_id = 2 then 1 else 0 end as mrm"
-	query += " FROM transcribations"
-	query += " WHERE transcribation_date > '"+date_from+"'"
-	query += " and transcribation_date < '"+date_toto+"'"
-	query += " and not queue_date is Null;"
+	query += " trans.source_id,"
+	query += " DATEPART(HOUR, trans.transcribation_date) as transcribation_hour,"
+	query += " DATEDIFF(second, trans.record_date, trans.queue_date)-trans.duration as rq,"
+	query += " DATEDIFF(second, trans.queue_date, trans.transcribation_date) as qt,"
+	query += " CASE WHEN trans.source_id = 1 then 1 else 0 end as call,"
+	query += " CASE WHEN trans.source_id = 2 then 1 else 0 end as mrm"
+	query += " FROM transcribations as trans"
+	query += " WHERE trans.transcribation_date > '"+date_from+"'"
+	query += " and trans.transcribation_date < '"+date_toto+"'"
+	query += " and trans.duration > 5"
+	query += " and not trans.queue_date is Null;"
 	df = pd.read_sql(query, con = trans_conn)
-	df['кц от записи до постановки в очередь']=df.rq*df.call
-	df['кц от постановки в очередь до расшифровки']=df.qt*df.call
-	df['мрм от записи до постановки в очередь']=df.rq*df.mrm
-	df['мрм от постановки в очередь до расшифровки']=df.qt*df.mrm
-	df.drop(['rq','qt','call','mrm'], axis = 1, inplace = True)
-	df = pd.DataFrame(df.groupby(['record_hour']).median()/60/60)
-	df['record_hour'] = df.index
-	plot_lag(df, 'Длительность транскрибации записей КЦ (ч.) за сутки', df.columns[0:2])
-	plot_lag(df, 'Длительность транскрибации записей МРМ (ч.) за сутки', df.columns[2:4])
+
+	df_call = pd.DataFrame(df[df.source_id==1])
+	df_call['кц от записи до постановки в очередь']=df_call.rq*df_call.call
+	df_call['кц от постановки в очередь до расшифровки']=df_call.qt*df_call.call
+	df_call = lag_df_prepare(df_call)
+
+	df_mrm = pd.DataFrame(df[df.source_id==2])
+	df_mrm['мрм от записи до постановки в очередь']=df_mrm.rq*df_mrm.mrm
+	df_mrm['мрм от постановки в очередь до расшифровки']=df_mrm.qt*df_mrm.mrm
+	df_mrm = lag_df_prepare(df_mrm)
+	
+	plot_lag(df_call, 'Длительность транскрибации записей КЦ (м.) за сутки', df_call.columns[0:2])
+	plot_lag(df_mrm, 'Длительность транскрибации записей МРМ (м.) за сутки', df_mrm.columns[0:2])
 
 
 def perfomance_by_processes(trans_conn):
