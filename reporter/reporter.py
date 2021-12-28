@@ -190,6 +190,13 @@ def queue_tasks_report(trans_conn, source_id, header):
 	send_photo_from_local_file_to_telegram('report.png')
 
 
+def lag_df_prepare(df_in):
+    df_in.drop(['rq','qt','call','mrm','source_id'], axis = 1, inplace = True)
+    df_in = pd.DataFrame(df_in.groupby(['transcribation_hour']).median()/60)
+    df_in['transcribation_hour'] = df_in.index
+    return df_in
+
+
 def ranscribation_process_duration(trans_conn):
 	
 	today = datetime.datetime.now().date()
@@ -219,7 +226,7 @@ def ranscribation_process_duration(trans_conn):
 	df_mrm['мрм от записи до постановки в очередь']=df_mrm.rq*df_mrm.mrm
 	df_mrm['мрм от постановки в очередь до расшифровки']=df_mrm.qt*df_mrm.mrm
 	df_mrm = lag_df_prepare(df_mrm)
-	
+
 	plot_lag(df_call, 'Длительность транскрибации записей КЦ (м.) за сутки', df_call.columns[0:2])
 	plot_lag(df_mrm, 'Длительность транскрибации записей МРМ (м.) за сутки', df_mrm.columns[0:2])
 
