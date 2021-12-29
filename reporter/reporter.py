@@ -120,8 +120,7 @@ def plot_grouped(df, header, tg_group):
 
 
 def plot_lag(lag_df, header, columns):
-
-	mycolors = ['tab:blue', 'tab:orange', 'red']
+	mycolors = ['tab:blue', 'tab:orange', 'tab:red']
 
 	# Draw Plot and Annotate
 	fig, ax = plt.subplots(1,1,figsize=(16, 9), dpi = 80)
@@ -132,7 +131,8 @@ def plot_lag(lag_df, header, columns):
 	x  = lag_df['transcribation_hour'].values.tolist()
 	y0 = lag_df[columns[0]].values.tolist()
 	y1 = lag_df[columns[1]].values.tolist()
-	y = np.vstack([y0, y1])
+	y2 = lag_df[columns[1]].values.tolist()
+	y = np.vstack([y0, y1, y2])
 
 	# Plot for each column
 	labs = columns.values.tolist()
@@ -142,15 +142,17 @@ def plot_lag(lag_df, header, columns):
 	# Decorations
 	ax.set_title(header, fontsize=18)
 	ax.legend(fontsize=10, ncol=4)
+	#plt.xticks(x, rotation=60)
 	plt.grid(alpha=0.5)
+	plt.xlabel('Время события: Час')
+	plt.ylabel('Длительность в минутах')
 
 	# Lighten borders
 	plt.gca().spines["top"].set_alpha(0)
 	plt.gca().spines["bottom"].set_alpha(.3)
 	plt.gca().spines["right"].set_alpha(0)
 	plt.gca().spines["left"].set_alpha(.3)
-
-	# plt.show()
+	
 	plt.savefig('report.png')
 	send_photo_from_local_file_to_telegram('report.png')
 
@@ -191,7 +193,7 @@ def queue_tasks_report(trans_conn, source_id, header):
 
 
 def lag_df_prepare(df_in):
-	df_in.drop(['rq','qt','call','mrm','source_id'], axis = 1, inplace = True)
+	df_in.drop(['duration','rq','qt','call','mrm','source_id', 'linkedid', 'source_id_sum', 'rt', 'rs', 'qs', 'sum_hour', 'call_sum', 'mrm_sum'], axis = 1, inplace = True)
 	df_in = pd.DataFrame(df_in.groupby(['transcribation_hour']).median()/60)
 	df_in['transcribation_hour'] = df_in.index
 	return df_in
@@ -203,32 +205,57 @@ def ranscribation_process_duration(trans_conn):
 	yesterday = today - datetime.timedelta(days=1)
 	date_from = yesterday.strftime('%Y.%m.%d %H:%M:%S')
 	date_toto = today.strftime('%Y.%m.%d %H:%M:%S')
+	
+	# Transcribations
 	query = "SELECT distinct"
-	query += " trans.source_id,"
-	query += " DATEPART(HOUR, trans.transcribation_date) as transcribation_hour,"
-	query += " DATEDIFF(second, trans.record_date, trans.queue_date)-trans.duration as rq,"
-	query += " DATEDIFF(second, trans.queue_date, trans.transcribation_date) as qt,"
-	query += " CASE WHEN trans.source_id = 1 then 1 else 0 end as call,"
-	query += " CASE WHEN trans.source_id = 2 then 1 else 0 end as mrm"
-	query += " FROM transcribations as trans"
-	query += " WHERE trans.transcribation_date > '"+date_from+"'"
-	query += " and trans.transcribation_date < '"+date_toto+"'"
-	query += " and trans.duration > 5"
-	query += " and not trans.queue_date is Null;"
-	df = pd.read_sql(query, con = trans_conn)
+	query += " linkedid,"
+	query += " source_id,"
+	query += " duration,"
+	query += " DATEPART(HOUR, transcribation_date) as transcribation_hour,"
+	query += " DATEDIFF(second, record_date, queue_date)-duration as rq,"
+	query += " DATEDIFF(second, queue_date, transcribation_date) as qt,"
+	query += " DATEDIFF(second, record_date, transcribation_date) as rt,"
+	query += " CASE WHEN source_id = 1 then 1 else 0 end as call,"
+	query += " CASE WHEN source_id = 2 then 1 else 0 end as mrm"
+	query += " FROM transcribations"
+	query += " WHERE transcribation_date > '"+date_from+"'"
+	query += " and transcribation_date < '"+date_toto+"'"
+	query += " and duration > 5"
+	query += " and not queue_date is Null;"
+	df_trans = pd.read_sql(query, con = trans_conn)
 
-	df_call = pd.DataFrame(df[df.source_id==1])
-	df_call['кц от записи до постановки в очередь']=df_call.rq*df_call.call
-	df_call['кц от постановки в очередь до расшифровки']=df_call.qt*df_call.call
+	# Summarization
+	query = "SELECT distinct"
+	query += " linkedid,"
+	query += " source_id,"
+	query += " DATEPART(HOUR, sum_date) as sum_hour,"
+	query += " DATEDIFF(second, record_date, sum_date) as rs,"
+	query += " CASE WHEN source_id = 1 then 1 else 0 end as call,"
+	query += " CASE WHEN source_id = 2 then 1 else 0 end as mrm"
+	query += " FROM summarization"
+	query += " WHERE sum_date > '"+date_from+"'"
+	query += " and sum_date < '"+date_toto+"'"
+	#query += " and duration > 5"
+	query += " and not sum_date is Null;"
+	df_sum = pd.read_sql(query, con = trans_conn)
+	
+	df_ts = df_trans.merge(df_sum, how='left', left_on = ['linkedid'], right_on = ['linkedid'], suffixes=("", '_sum'))
+	df_ts['qs'] = df_ts.rs-df_ts.rt
+
+	df_call = pd.DataFrame(df_ts[df_ts.source_id==1])
+	df_call['От записи до постановки в очередь']=df_call.rq*df_call.call
+	df_call['От постановки в очередь до расшифровки']=df_call.qt*df_call.call
+	df_call['От расшифровки до суммаризации']=df_call.qs*df_call.call
 	df_call = lag_df_prepare(df_call)
 
-	df_mrm = pd.DataFrame(df[df.source_id==2])
-	df_mrm['мрм от записи до постановки в очередь']=df_mrm.rq*df_mrm.mrm
-	df_mrm['мрм от постановки в очередь до расшифровки']=df_mrm.qt*df_mrm.mrm
+	df_mrm = pd.DataFrame(df_ts[df_ts.source_id==2])
+	df_mrm['От записи до постановки в очередь']=df_mrm.rq*df_mrm.mrm
+	df_mrm['От постановки в очередь до расшифровки']=df_mrm.qt*df_mrm.mrm
+	df_mrm['От расшифровки до суммаризации']=df_mrm.qs*df_mrm.mrm
 	df_mrm = lag_df_prepare(df_mrm)
 
-	plot_lag(df_call, 'Длительность транскрибации записей КЦ (м.) за сутки', df_call.columns[0:2])
-	plot_lag(df_mrm, 'Длительность транскрибации записей МРМ (м.) за сутки', df_mrm.columns[0:2])
+	plot_lag(df_call, 'Длительность транскрибации записей КЦ', df_call.columns[0:3])
+	plot_lag(df_mrm, 'Длительность транскрибации записей МРМ', df_mrm.columns[0:3])
 
 
 def perfomance_by_processes(trans_conn):
