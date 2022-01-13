@@ -412,7 +412,7 @@ def calls_transcribations_relation(trans_conn):
 
 	yesterday = datetime.datetime.now().date() - datetime.timedelta(days=1)
 	report += '\nЗвонков: ' + str(len(calls[calls.day == yesterday].linkedid.unique()))
-	report += '\nРасшифровок: ' + str(len(trans[trans.day == str(yesterday)].linkedid.unique()))
+	report += '\nРасшифровок: ' + str(len(trans[trans.day == yesterday].linkedid.unique()))
 	mask = (df_all._merge == 'both') & (df_all.day == yesterday)
 	report += '\nСвязь установлена: ' + str(len(df_all[mask].linkedid.unique()))
 	mask = (df_all._merge == 'left_only') & (df_all.day == yesterday)
