@@ -424,6 +424,7 @@ def calls_transcribations_relation(trans_conn):
 	plot_grouped(df, 'Соединение установлено', group)
 
 	df = df_all[df_all._merge == 'left_only']
+	df.to_csv('debug.csv') # ToDo: remove
 	plot_grouped(df, 'Соединение не установлено', group)
 
 
