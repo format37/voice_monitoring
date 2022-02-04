@@ -516,7 +516,8 @@ def lost_call(trans_conn):
 	report += str(len(df_trans[mask_b]))
 	report += ', или '
 	report += str(math.ceil(100*len(df_trans[mask_a])/len(df_trans[mask_b])))
-	report += '% звонков теряют более трети данных при транскрибации'
+	report += '% звонков теряют более трети данных при транскрибации.\n'
+	report += 'Из отчета исключены звонки, длительностью менее 30 секунд.'
 
 	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.plot.html
 	# https://matplotlib.org/stable/tutorials/colors/colormaps.html
@@ -550,13 +551,13 @@ def main():
 	# trans_cursor = trans_conn.cursor()
 	
 	while True:
-		"""queue_time_vs_date(trans_conn)
+		queue_time_vs_date(trans_conn)
 		queue_tasks_report(trans_conn, 1, 'Поступление в очередь КЦ (количество linkedid в минуту)')		
 		queue_tasks_report(trans_conn, 2, 'Поступление в очередь МРМ (количество linkedid в минуту)')
 		ranscribation_process_duration(trans_conn)
 		perfomance_by_processes(trans_conn)
 		transcribation_summarization_count(trans_conn, days_count = 10)
-		calls_transcribations_relation(trans_conn)"""
+		calls_transcribations_relation(trans_conn)
 		lost_call(trans_conn)
 		
 		time.sleep(60)
