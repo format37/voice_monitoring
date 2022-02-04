@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import requests
 import numpy as np
+from matplotlib import cm
+import math
 
 
 def connect_sql():
@@ -20,13 +22,15 @@ def connect_sql():
 	)
 
 
-def send_photo_from_local_file_to_telegram(photo_path):
+def send_photo_from_local_file_to_telegram(photo_path, caption = ''):
 
 	token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
 	chat_id = os.environ.get('TELEGRAM_CHAT', '')
 	session = requests.Session()
 	get_request = 'https://api.telegram.org/bot' + token
 	get_request += '/sendPhoto?chat_id=' + chat_id
+	if caption!='':
+		get_request += '&caption=' + caption
 	files = {'photo': open(photo_path, 'rb')}
 	session.post(get_request, files=files)
 
@@ -487,6 +491,54 @@ def queue_time_vs_date(trans_conn):
 		send_photo_from_local_file_to_telegram('queue.png')
 
 
+def lost_call(trans_conn):
+	today = datetime.datetime.now().date()
+	yesterday = today - datetime.timedelta(days=1)
+	date_from = yesterday.strftime('%Y.%m.%d %H:%M:%S')
+	date_toto = today.strftime('%Y.%m.%d %H:%M:%S')
+	query = "SELECT"
+	query += " trans.linkedid as linkedid,"
+	query += " max(trans.duration) as duration,"
+	query += " max(trans.end_time) as end_time,"
+	query += " max(trans.duration)-max(trans.end_time) as distance"
+	query += " FROM transcribations as trans"
+	query += " WHERE trans.record_date > '"+date_from+"'"
+	query += " and trans.record_date < '"+date_toto+"'"
+	query += " group by trans.linkedid"
+	query += " having max(trans.duration)>30" 
+	df_trans = pd.read_sql(query, con = trans_conn)
+
+	mask_a = df_trans.distance>df_trans.duration/3
+	mask_b = df_trans.distance<=df_trans.duration/3
+	report = 'За период с \n'+date_from+' по\n'+date_toto+'\n'
+	report += str(len(df_trans[mask_a]))
+	report += ' звонков из '
+	report += str(len(df_trans[mask_b]))
+	report += ', или '
+	report += str(math.ceil(100*len(df_trans[mask_a])/len(df_trans[mask_b])))
+	report += '% звонков теряют более трети данных при транскрибации'
+
+	# https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.plot.html
+	# https://matplotlib.org/stable/tutorials/colors/colormaps.html
+
+	cmap = cm.get_cmap('tab20c')
+	plot = df_trans.plot(
+		title='Звонки',
+		xlabel='Длительность аудиозаписи',    
+		ylabel='Длительность транскрибации',
+		x='duration',
+		y='end_time',
+		c = df_trans.distance, 
+		kind='scatter', 
+		colormap=cmap, 
+		figsize=(10,10),
+		sharex=False
+	)
+	fig = plot.get_figure()
+	fig.savefig('queue.png')
+	send_photo_from_local_file_to_telegram('queue.png', report)
+
+
 def main():
 	trans_conn = pymssql.connect(
 			server = os.environ.get('MSSQL_SERVER', ''),
@@ -498,13 +550,14 @@ def main():
 	# trans_cursor = trans_conn.cursor()
 	
 	while True:
-		queue_time_vs_date(trans_conn)
+		"""queue_time_vs_date(trans_conn)
 		queue_tasks_report(trans_conn, 1, 'Поступление в очередь КЦ (количество linkedid в минуту)')		
 		queue_tasks_report(trans_conn, 2, 'Поступление в очередь МРМ (количество linkedid в минуту)')
 		ranscribation_process_duration(trans_conn)
 		perfomance_by_processes(trans_conn)
 		transcribation_summarization_count(trans_conn, days_count = 10)
-		calls_transcribations_relation(trans_conn)
+		calls_transcribations_relation(trans_conn)"""
+		lost_call(trans_conn)
 		
 		time.sleep(60)
 		sleep_until_time(6, 0)
