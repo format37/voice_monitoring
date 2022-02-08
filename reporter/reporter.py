@@ -185,15 +185,16 @@ def queue_tasks_report(trans_conn, source_id, header):
 	start_time = datetime.datetime(yesterday.year, yesterday.month, yesterday.day, 0, 0, 0)
 	(start_time + datetime.timedelta(minutes = 120)).time()
 	df['queued'] = df.time.apply(lambda x: (start_time + datetime.timedelta(minutes = x)).time())
-	fig, ax = plt.subplots(figsize=(16,10), dpi= 80)    
-	sns.stripplot(df.queued, df.linkedid_count, jitter=0.25, size=8, ax=ax, linewidth=.5)
-	plt.gca().set_xticklabels(labels = df.queued, rotation=30)
-	# Decorations
-	plt.grid(linestyle='--', alpha=0.5)
-	plt.title(header, fontsize=22)
-	# plt.show()
-	plt.savefig('report.png')
-	send_photo_from_local_file_to_telegram('report.png')
+	if len(df):
+		fig, ax = plt.subplots(figsize=(16,10), dpi= 80)    	
+		sns.stripplot(df.queued, df.linkedid_count, jitter=0.25, size=8, ax=ax, linewidth=.5)
+		plt.gca().set_xticklabels(labels = df.queued, rotation=30)
+		# Decorations
+		plt.grid(linestyle='--', alpha=0.5)
+		plt.title(header, fontsize=22)
+		# plt.show()
+		plt.savefig('report.png')
+		send_photo_from_local_file_to_telegram('report.png')
 
 
 def lag_df_prepare(df_in):
