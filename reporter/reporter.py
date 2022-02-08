@@ -124,41 +124,42 @@ def plot_grouped(df, header, tg_group):
 
 
 def plot_lag(lag_df, header, columns):
-	mycolors = ['tab:blue', 'tab:orange', 'tab:red']
+	if len(lag_df):
+		mycolors = ['tab:blue', 'tab:orange', 'tab:red']
 
-	# Draw Plot and Annotate
-	fig, ax = plt.subplots(1,1,figsize=(16, 9), dpi = 80)
+		# Draw Plot and Annotate
+		fig, ax = plt.subplots(1,1,figsize=(16, 9), dpi = 80)
 
-	labs = columns.values.tolist()
+		labs = columns.values.tolist()
 
-	# Prepare data
-	x  = lag_df['transcribation_hour'].values.tolist()
-	y0 = lag_df[columns[0]].values.tolist()
-	y1 = lag_df[columns[1]].values.tolist()
-	y2 = lag_df[columns[1]].values.tolist()
-	y = np.vstack([y0, y1, y2])
+		# Prepare data
+		x  = lag_df['transcribation_hour'].values.tolist()
+		y0 = lag_df[columns[0]].values.tolist()
+		y1 = lag_df[columns[1]].values.tolist()
+		y2 = lag_df[columns[1]].values.tolist()
+		y = np.vstack([y0, y1, y2])
 
-	# Plot for each column
-	labs = columns.values.tolist()
-	ax = plt.gca()
-	ax.stackplot(x, y, labels=labs, colors=mycolors, alpha=0.8)
+		# Plot for each column
+		labs = columns.values.tolist()
+		ax = plt.gca()
+		ax.stackplot(x, y, labels=labs, colors=mycolors, alpha=0.8)
 
-	# Decorations
-	ax.set_title(header, fontsize=18)
-	ax.legend(fontsize=10, ncol=4)
-	#plt.xticks(x, rotation=60)
-	plt.grid(alpha=0.5)
-	plt.xlabel('Время события: Час')
-	plt.ylabel('Длительность в минутах')
+		# Decorations
+		ax.set_title(header, fontsize=18)
+		ax.legend(fontsize=10, ncol=4)
+		#plt.xticks(x, rotation=60)
+		plt.grid(alpha=0.5)
+		plt.xlabel('Время события: Час')
+		plt.ylabel('Длительность в минутах')
 
-	# Lighten borders
-	plt.gca().spines["top"].set_alpha(0)
-	plt.gca().spines["bottom"].set_alpha(.3)
-	plt.gca().spines["right"].set_alpha(0)
-	plt.gca().spines["left"].set_alpha(.3)
-	
-	plt.savefig('report.png')
-	send_photo_from_local_file_to_telegram('report.png')
+		# Lighten borders
+		plt.gca().spines["top"].set_alpha(0)
+		plt.gca().spines["bottom"].set_alpha(.3)
+		plt.gca().spines["right"].set_alpha(0)
+		plt.gca().spines["left"].set_alpha(.3)
+		
+		plt.savefig('report.png')
+		send_photo_from_local_file_to_telegram('report.png')
 
 
 def queue_tasks_report(trans_conn, source_id, header):
