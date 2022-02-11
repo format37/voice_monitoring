@@ -4,6 +4,10 @@ services:
     deploy:
       mode: replicated
       replicas: 1
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
     restart: always
     volumes:
       - /etc/localtime:/etc/localtime:ro
@@ -26,6 +30,10 @@ logger:
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
     build: logger
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
     network_mode: "host"
     environment:
       - MYSQL_SERVER=
