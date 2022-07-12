@@ -360,31 +360,39 @@ def transcribation_summarization_count(trans_conn, days_count):
 def calls_transcribations_relation(trans_conn):
 	report =''
 	# calls
-	calls_conn = pymysql.connect(
+	"""calls_conn = pymysql.connect(
 		host = '10.2.4.87',
 		user = 'root',
 		passwd = 'root',
 		database = 'ml'
 	)
-	calls_conn.cursor()
+	calls_conn.cursor()"""
 
 	# = = = connections report = = =
 	seven_days = datetime.datetime.now().date() - datetime.timedelta(days=7)
-	date_from = seven_days.strftime('%Y:%m:%d %H:%M:%S')
+	# date_from = seven_days.strftime('%Y:%m:%d %H:%M:%S')
+	date_from = seven_days.strftime('%Y%m%d %H:%M:%S.000')
+	date_toto = datetime.datetime.now().date().strftime('%Y%m%d %H:%M:%S.000')
 	# calls
 	query = "SELECT"
-	query += " date(call_date) as day,"
-	query += " date(call_date) as call_date,"
+	# query += " date(call_date) as day,"
+	# query += " date(call_date) as call_date,"
+	query += " cast (call_date as date) as day,"
+	query += " cast (call_date as date) as call_date,"
 	query += " ak,"
 	query += " miko,"
 	query += " mrm,"
 	query += " incoming,"
-	query += " not incoming as outcoming,"
-	query += " linkedid,"
+	# query += " not incoming as outcoming,"
+	# query += " linkedid,"
+	query += " CASE WHEN incoming = 1 THEN 0 ELSE 1 END as outcoming,"
+	query += " REPLACE(linkedid, ' ', '') as linkedid,"
 	query += " base_name"
 	query += " from calls"
-	query += " where date(call_date)>='"+date_from+"';"
-	calls = pd.read_sql(query, con=calls_conn)
+	query += " where date(call_date)>='"+date_from+"'"
+	query += " and date(call_date)<'"+date_toto+"';"
+	#calls = pd.read_sql(query, con=calls_conn)
+	calls = pd.read_sql(query, con=trans_conn)
 	date_min = calls.call_date.min()
 	date_max = calls.call_date.max()
 
