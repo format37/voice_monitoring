@@ -389,8 +389,8 @@ def calls_transcribations_relation(trans_conn):
 	query += " REPLACE(linkedid, ' ', '') as linkedid,"
 	query += " base_name"
 	query += " from calls"
-	query += " where date(call_date)>='"+date_from+"'"
-	query += " and date(call_date)<'"+date_toto+"';"
+	query += " where cast (call_date as date)>='"+date_from+"'"
+	query += " and cast (call_date as date)<'"+date_toto+"';"
 	#calls = pd.read_sql(query, con=calls_conn)
 	calls = pd.read_sql(query, con=trans_conn)
 	date_min = calls.call_date.min()
