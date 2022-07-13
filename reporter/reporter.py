@@ -567,7 +567,8 @@ def files_count():
 				#print(os.path.join(root, file), size)
 				size_sum += size
 		count_sum += count
-		report += '\n\n=== '+key+':\nCount: '+str(count)+'\nSize'+str(size_sum)
+		# format size as megabytes with spaces
+		report += '\n\n=== '+key+':\nCount: '+str(count)+'\nSize: '+str(round(size_sum/1024/1024, 2))+' MB'
 	if count_sum > 0:
 		send_text_to_telegram(report)
 
