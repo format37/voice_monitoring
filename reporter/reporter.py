@@ -551,8 +551,8 @@ def lost_call(trans_conn):
 
 def files_count():
 	pathes = {
-		'call':'/audio/call/',
-		'mrm':'/audio/mrm/'
+		'call':'audio/call/',
+		'mrm':'audio/mrm/'
 	}
 	report = 'Stored audio files:'
 	count_sum = 0
