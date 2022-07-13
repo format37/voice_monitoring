@@ -549,6 +549,28 @@ def lost_call(trans_conn):
 	fig.savefig('queue.png')
 	send_photo_from_local_file_to_telegram('queue.png', report)
 
+def files_count():
+	pathes = {
+		'call':'/audio/call/',
+		'mrm':'/audio/mrm/'
+	}
+	report = 'Stored audio files:'
+	count_sum = 0
+	for key in pathes:
+		path = pathes[key]
+		count = 0
+		size_sum = 0
+		for root, dirs, files in os.walk(path):
+			for file in files:
+				count += 1
+				size = os.path.getsize(os.path.join(root, file))
+				#print(os.path.join(root, file), size)
+				size_sum += size
+		count_sum += count
+		report += '\n\n=== '+key+':\nCount: '+str(count)+'\nSize'+str(size_sum)
+	if count_sum > 0:
+		send_text_to_telegram(report)
+
 
 def main():
 	trans_conn = pymssql.connect(
@@ -561,6 +583,7 @@ def main():
 	# trans_cursor = trans_conn.cursor()
 	
 	while True:
+		files_count()
 		queue_time_vs_date(trans_conn)
 		queue_tasks_report(trans_conn, 1, 'Поступление в очередь КЦ (количество linkedid в минуту)')		
 		queue_tasks_report(trans_conn, 2, 'Поступление в очередь МРМ (количество linkedid в минуту)')
