@@ -627,6 +627,8 @@ def main():
 			)
 	except Exception as e:
 		logger.error('Error connecting to MSSQL: '+str(e))
+
+	send_text_to_telegram('Voice monitoring started')
 	
 	while True:
 		logger.info('Reports started')
