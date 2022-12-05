@@ -10,6 +10,13 @@ import requests
 import numpy as np
 from matplotlib import cm
 import math
+import logging
+
+
+logger = logging.getLogger('reporter')
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler())
+logger.info('Start')
 
 
 def connect_sql():
@@ -277,8 +284,7 @@ def perfomance_by_processes(trans_conn):
 	query += " and event_date < '"+date_toto+"';"
 	df = pd.read_sql(query, con = trans_conn)
 	df['td'] = df.duration/df.time
-	print(len(df))
-	print(datetime.datetime.now())
+	logger.info('perfomance_by_processes len(df): '+str(len(df)))
 	if len(df):
 		df.groupby('cpu').count().plot(
 			y = ['file_name'], 
@@ -550,49 +556,53 @@ def lost_call(trans_conn):
 	send_photo_from_local_file_to_telegram('queue.png', report)
 
 def files_count():
-	pathes = {
-		'call':'audio/call/',
-		'mrm':'audio/mrm/'
-	}
-	report = 'Stored audio files:'
-	count_sum = 0
-	for key in pathes:
-		path = pathes[key]
-		count = 0
-		size_sum = 0
-		for root, dirs, files in os.walk(path):
-			for file in files:
-				count += 1
-				size = os.path.getsize(os.path.join(root, file))
-				#print(os.path.join(root, file), size)
-				size_sum += size
-		count_sum += count
-		# format size as megabytes with spaces
-		report += '\n\n=== '+key+':\nCount: '+str(count)+'\nSize: '+str(round(size_sum/1024/1024, 2))+' MB'
-	if count_sum > 0:
-		send_text_to_telegram(report)
+	try:
+		pathes = {
+			'call':'audio/call/',
+			'mrm':'audio/mrm/'
+		}
+		report = 'Stored audio files:'
+		count_sum = 0
+		for key in pathes:
+			path = pathes[key]
+			count = 0
+			size_sum = 0
+			for root, dirs, files in os.walk(path):
+				for file in files:
+					count += 1
+					size = os.path.getsize(os.path.join(root, file))
+					size_sum += size
+			count_sum += count
+			# format size as megabytes with spaces
+			report += '\n\n=== '+key+':\nCount: '+str(count)+'\nSize: '+str(round(size_sum/1024/1024, 2))+' MB'
+		if count_sum > 0:
+			send_text_to_telegram(report)
+	except Exception as e:
+		logger.error('files_count: '+str(e))
 
 
 def main():
-	trans_conn = pymssql.connect(
-			server = os.environ.get('MSSQL_SERVER', ''),
-			user = os.environ.get('MSSQL_LOGIN', ''),
-			password = os.environ.get('MSSQL_PASSWORD', ''),
-			database = 'voice_ai'			
-		)
 
-	# trans_cursor = trans_conn.cursor()
+	try:
+		trans_conn = pymssql.connect(
+				server = os.environ.get('MSSQL_SERVER', ''),
+				user = os.environ.get('MSSQL_LOGIN', ''),
+				password = os.environ.get('MSSQL_PASSWORD', ''),
+				database = 'voice_ai'			
+			)
+	except Exception as e:
+		logger.error('Error connecting to MSSQL: '+str(e))
 	
 	while True:
 		files_count()
-		queue_time_vs_date(trans_conn)
+		"""queue_time_vs_date(trans_conn)
 		queue_tasks_report(trans_conn, 1, 'Поступление в очередь КЦ (количество linkedid в минуту)')		
 		queue_tasks_report(trans_conn, 2, 'Поступление в очередь МРМ (количество linkedid в минуту)')
 		ranscribation_process_duration(trans_conn)
 		perfomance_by_processes(trans_conn)
 		transcribation_summarization_count(trans_conn, days_count = 10)
 		calls_transcribations_relation(trans_conn)
-		lost_call(trans_conn)
+		lost_call(trans_conn)"""
 		
 		time.sleep(60)
 		sleep_until_time(6, 0)
