@@ -588,7 +588,7 @@ def lost_call(trans_conn):
 		send_photo_from_local_file_to_telegram('queue.png', report)
 	except Exception as e:
 		logger.error('lost_call: '+e)
-		
+
 
 def files_count():
 	try:
@@ -629,16 +629,18 @@ def main():
 		logger.error('Error connecting to MSSQL: '+str(e))
 	
 	while True:
+		logger.info('Reports started')
 		files_count()
-		"""queue_time_vs_date(trans_conn)
+		queue_time_vs_date(trans_conn)
 		queue_tasks_report(trans_conn, 1, 'Поступление в очередь КЦ (количество linkedid в минуту)')		
 		queue_tasks_report(trans_conn, 2, 'Поступление в очередь МРМ (количество linkedid в минуту)')
 		ranscribation_process_duration(trans_conn)
 		perfomance_by_processes(trans_conn)
 		transcribation_summarization_count(trans_conn, days_count = 10)
 		calls_transcribations_relation(trans_conn)
-		lost_call(trans_conn)"""
-		
+		lost_call(trans_conn)
+
+		logger.info('Sleeping until 6:00')
 		time.sleep(60)
 		sleep_until_time(6, 0)
 
