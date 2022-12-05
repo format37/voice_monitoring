@@ -41,7 +41,7 @@ def send_photo_from_local_file_to_telegram(photo_path, caption = ''):
 		files = {'photo': open(photo_path, 'rb')}
 		session.post(get_request, files=files)
 	except Exception as e:
-		logger.error('send_photo_from_local_file_to_telegram: '+e)
+		logger.error('send_photo_from_local_file_to_telegram: '+str(e))
 
 
 def send_text_to_telegram(text):
@@ -54,7 +54,7 @@ def send_text_to_telegram(text):
 		get_request += '&parse_mode=Markdown&text=' + text
 		session.get(get_request)
 	except Exception as e:
-		logger.error('send_text_to_telegram: '+e)
+		logger.error('send_text_to_telegram: '+str(e))
 
 
 def plot_grouped(df, header, tg_group):
@@ -133,7 +133,7 @@ def plot_grouped(df, header, tg_group):
 		plt.savefig('report.png')
 
 	except Exception as e:
-		logger.error('plot_grouped: '+e)
+		logger.error('plot_grouped: '+str(e))
 		err = True
 
 	if not err:
@@ -179,7 +179,7 @@ def plot_lag(lag_df, header, columns):
 			plt.savefig('report.png')
 			send_photo_from_local_file_to_telegram('report.png')
 	except Exception as e:
-		logger.error('plot_lag: '+e)
+		logger.error('plot_lag: '+str(e))
 
 
 def queue_tasks_report(trans_conn, source_id, header):
@@ -217,7 +217,7 @@ def queue_tasks_report(trans_conn, source_id, header):
 			plt.savefig('report.png')
 			send_photo_from_local_file_to_telegram('report.png')
 	except Exception as e:
-		logger.error('queue_tasks_report: '+e)
+		logger.error('queue_tasks_report: '+str(e))
 
 
 def lag_df_prepare(df_in):
@@ -227,7 +227,7 @@ def lag_df_prepare(df_in):
 		df_in['transcribation_hour'] = df_in.index
 		return df_in
 	except Exception as e:
-		logger.error('lag_df_prepare: '+e)
+		logger.error('lag_df_prepare: '+str(e))
 		return None
 
 
@@ -289,7 +289,7 @@ def ranscribation_process_duration(trans_conn):
 		plot_lag(df_call, 'Длительность транскрибации записей КЦ', df_call.columns[0:3])
 		plot_lag(df_mrm, 'Длительность транскрибации записей МРМ', df_mrm.columns[0:3])
 	except Exception as e:
-		logger.error('ranscribation_process_duration: '+e)
+		logger.error('ranscribation_process_duration: '+str(e))
 
 
 def perfomance_by_processes(trans_conn):
@@ -328,7 +328,7 @@ def perfomance_by_processes(trans_conn):
 			plt.savefig("report.png")
 			send_photo_from_local_file_to_telegram('report.png')
 	except Exception as e:
-		logger.error('perfomance_by_processes: '+e)
+		logger.error('perfomance_by_processes: '+str(e))
 
 
 def transcribation_summarization_count(trans_conn, days_count):
@@ -385,7 +385,7 @@ def transcribation_summarization_count(trans_conn, days_count):
 		plt.savefig("report.png")
 		send_photo_from_local_file_to_telegram('report.png')
 	except Exception as e:
-		logger.error('transcribation_summarization_count: '+e)
+		logger.error('transcribation_summarization_count: '+str(e))
 
 
 def calls_transcribations_relation(trans_conn):
@@ -473,7 +473,7 @@ def calls_transcribations_relation(trans_conn):
 		df.to_csv('debug.csv') # ToDo: remove
 		plot_grouped(df, 'Соединение не установлено', group)
 	except Exception as e:
-		logger.error('calls_transcribation_relation: '+e)
+		logger.error('calls_transcribation_relation: '+str(e))
 
 
 def sleep_until_time(hour, minute):
@@ -535,7 +535,7 @@ def queue_time_vs_date(trans_conn):
 			plt.savefig('queue.png')
 			send_photo_from_local_file_to_telegram('queue.png')
 	except Exception as e:
-		logger.error('queue_time_vs_date: '+e)
+		logger.error('queue_time_vs_date: '+str(e))
 
 
 def lost_call(trans_conn):
@@ -587,7 +587,7 @@ def lost_call(trans_conn):
 		fig.savefig('queue.png')
 		send_photo_from_local_file_to_telegram('queue.png', report)
 	except Exception as e:
-		logger.error('lost_call: '+e)
+		logger.error('lost_call: '+str(e))
 
 
 def files_count():
