@@ -11,6 +11,7 @@ import numpy as np
 from matplotlib import cm
 import math
 import logging
+from log_ttl_analys import log_ttl_report
 
 
 logger = logging.getLogger('reporter')
@@ -537,6 +538,14 @@ def queue_time_vs_date(trans_conn):
 	except Exception as e:
 		logger.error('queue_time_vs_date: '+str(e))
 
+def log_ttl():
+	logger.info('log_ttl started')
+	file_list = log_ttl_report(14)
+	for log_ttl_plotting in file_list:
+		report = f'Отчет по временным интервалам запросов МРМ за 14 дней\n{log_ttl_plotting}'
+		logger.info(report)
+		send_photo_from_local_file_to_telegram(log_ttl_plotting, report)
+	logger.info('log_ttl finished')
 
 def lost_call(trans_conn):
 	try:
@@ -632,6 +641,7 @@ def main():
 	
 	while True:
 		logger.info('Reports started')
+		log_ttl()
 		files_count()
 		queue_time_vs_date(trans_conn)
 		queue_tasks_report(trans_conn, 1, 'Поступление в очередь КЦ (количество linkedid в минуту)')		
