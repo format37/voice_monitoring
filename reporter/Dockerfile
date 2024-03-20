@@ -9,5 +9,8 @@ ENV TZ=Europe/Moscow
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 COPY reporter.py /reporter
+COPY onec_request.py /reporter
+COPY log_ttl_analys.py /reporter
+COPY config.json /reporter
 ENTRYPOINT ["python3"]
 CMD ["reporter.py"]
